@@ -26,11 +26,22 @@ public class StoryWeaverManager {
     private void interpretPublicMessage(Message message) {
         String content = message.getContent();
         content = message.getData().content();
-        if(content.equals("!start")) {
+        String[] args = content.split(" ");
+        if(args[0].equalsIgnoreCase("!start")) {
+
+            int maxRounds = 7;
+            if(args.length > 1) {
+                try {
+                    maxRounds = Integer.parseInt(args[1]);
+                } catch (NumberFormatException e) {
+                    //Default value
+                }
+            }
+
             if(currentInstance == null) {
                 currentInstance = new StoryWeaverInstance(message, () -> {
                     currentInstance = null;
-                });
+                }, maxRounds);
             }
         }
     }

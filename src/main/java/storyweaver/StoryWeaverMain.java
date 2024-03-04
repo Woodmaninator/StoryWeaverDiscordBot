@@ -8,7 +8,10 @@ import storyweaver.logic.StoryWeaverManager;
 
 public class StoryWeaverMain {
     public static void main(String[] args) {
-        String token = "";
+        String token = System.getenv("TOKEN");
+
+        if(token == null || token.trim().isEmpty())
+            throw new IllegalArgumentException("TOKEN not found in environment variables");
 
         startBot(token);
     }
