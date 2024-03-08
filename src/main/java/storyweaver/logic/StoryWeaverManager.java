@@ -5,6 +5,8 @@ import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.Channel;
 import discord4j.core.object.reaction.ReactionEmoji;
 
+import java.util.Optional;
+
 public class StoryWeaverManager {
 
     private StoryWeaverInstance currentInstance = null;
@@ -51,24 +53,27 @@ public class StoryWeaverManager {
             //Check if the emoji has been removed or added
             if(currentInstance.getLobbyMessage().getReactors(emoji).any(user1 -> user1.equals(user)).block()) {
 
-                String rawEmoji = emoji.asUnicodeEmoji().get().getRaw();
-                Long userId = user.getId().asLong();
-                if (rawEmoji.equals("\uD83D\uDFE9")) {
-                    if(!userId.equals(currentInstance.getOwnerId())) {
-                        this.currentInstance.addParticipant(userId);
-                    }
-                } else if (rawEmoji.equals("\uD83D\uDFE5")) {
-                    if(!userId.equals(currentInstance.getOwnerId())) {
-                        this.currentInstance.removeParticipant(userId);
-                    }
-                } else if (rawEmoji.equals("\u25B6\uFE0F")) {
-                    if(userId.equals(currentInstance.getOwnerId())) {
-                        this.currentInstance.startGame();
-                    }
-                } else if (rawEmoji.equals("\u274C")) {
-                    if(userId.equals(currentInstance.getOwnerId())) {
-                        //close the lobby
-                        this.currentInstance = null;
+                Optional<ReactionEmoji.Unicode> unicodeEmoji = emoji.asUnicodeEmoji();
+                if(unicodeEmoji.isPresent()) {
+                    String rawEmoji = unicodeEmoji.get().getRaw();
+                    Long userId = user.getId().asLong();
+                    if (rawEmoji.equals("\uD83D\uDFE9")) {
+                        if (!userId.equals(currentInstance.getOwnerId())) {
+                            this.currentInstance.addParticipant(userId);
+                        }
+                    } else if (rawEmoji.equals("\uD83D\uDFE5")) {
+                        if (!userId.equals(currentInstance.getOwnerId())) {
+                            this.currentInstance.removeParticipant(userId);
+                        }
+                    } else if (rawEmoji.equals("\u25B6\uFE0F")) {
+                        if (userId.equals(currentInstance.getOwnerId())) {
+                            this.currentInstance.startGame();
+                        }
+                    } else if (rawEmoji.equals("\u274C")) {
+                        if (userId.equals(currentInstance.getOwnerId())) {
+                            //close the lobby
+                            this.currentInstance = null;
+                        }
                     }
                 }
             }

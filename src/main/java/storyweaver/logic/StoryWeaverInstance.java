@@ -234,7 +234,7 @@ public class StoryWeaverInstance {
     private Long getPreviousUserId(Long userId) {
         int index = participants.indexOf(userId);
         int newIndex = index - 1;
-        if(index == 0)
+        if(index == -1)
             newIndex = participants.size() - 1;
 
         return participants.get(newIndex);
