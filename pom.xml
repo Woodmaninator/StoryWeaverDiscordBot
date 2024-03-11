@@ -40,7 +40,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>attmayMBBot.AttmayMBBotMain</mainClass>
+                            <mainClass>storyweaver.StoryWeaverMain</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
