@@ -189,7 +189,7 @@ public class StoryWeaverInstance {
 
                     //Check if the next person needs the story immediately
                     Long nextUserId = getNextUserId(userId);
-                    if (stories.get(nextUserId).size() >= stories.get(userId).size()) {
+                    if (stories.get(nextUserId).size() == stories.get(userId).size()) {
                         if (stories.get(userId).size() < maxRounds) {
                             userChannels.get(nextUserId).createMessage(
                                     "You have a new story to continue. Please send the next part of the story\n\n" +
