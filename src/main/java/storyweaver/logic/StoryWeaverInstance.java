@@ -276,15 +276,13 @@ public class StoryWeaverInstance {
                 User user = gatewayDiscordClient.getUserById(Snowflake.of(storyPart.getKey())).block();
                 if (isFirstIteration) {
                     storyBuilder.append("# ").append(storyPart.getValue()).append("\n");
-                    storyBuilder.append("## ").append(" by:").append(user.getGlobalName().get()).append("\n\n");
+                    storyBuilder.append("## ").append(" *by: ").append(user.getGlobalName().get()).append("*\n\n");
                     isFirstIteration = false;
                 } else {
-                    storyBuilder.append("## ").append(user.getGlobalName().get()).append("wrote:").append("\n");
-                    storyBuilder.append(storyPart.getValue()).append("\n\n");
+                    storyBuilder.append("## ").append(user.getGlobalName().get()).append(" *wrote:* ").append("\n");
+                    storyBuilder.append(storyPart.getValue()).append("\n");
                 }
             }
-
-            storyBuilder.append("\n").append("# ===================================================\n");
 
             String text = storyBuilder.toString();
             for(int i = 0; i < text.length(); i += 1800) {
