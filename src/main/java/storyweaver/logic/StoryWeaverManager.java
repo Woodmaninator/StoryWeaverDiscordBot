@@ -46,6 +46,15 @@ public class StoryWeaverManager {
                 }, maxRounds);
             }
         }
+
+        if(args[0].equalsIgnoreCase("!reset")) {
+            if(currentInstance != null) {
+                if(currentInstance.getOwnerId().equals(message.getAuthor().get().getId().asLong())) {
+                    currentInstance = null;
+                    message.getChannel().block().createMessage("Lobby has been reset").block();
+                }
+            }
+        }
     }
 
     public void interpretReaction(Message message, User user, ReactionEmoji emoji) {
@@ -61,12 +70,13 @@ public class StoryWeaverManager {
                         if (!userId.equals(currentInstance.getOwnerId())) {
                             this.currentInstance.addParticipant(userId);
                         }
+
                     } else if (rawEmoji.equals("\uD83D\uDFE5")) {
                         if (!userId.equals(currentInstance.getOwnerId())) {
                             this.currentInstance.removeParticipant(userId);
                         }
                     } else if (rawEmoji.equals("\u25B6\uFE0F")) {
-                        if (userId.equals(currentInstance.getOwnerId())) {
+                        if (userId.equals(currentInstance.getOwnerId()) && currentInstance.getNumberOfParticipants() > 1 && currentInstance.isLobbyOpen()) {
                             this.currentInstance.startGame();
                         }
                     } else if (rawEmoji.equals("\u274C")) {
@@ -74,6 +84,13 @@ public class StoryWeaverManager {
                             //close the lobby
                             this.currentInstance = null;
                         }
+                    }
+
+                    //Remove the reaction again
+                    try {
+                        message.removeReaction(ReactionEmoji.of(unicodeEmoji.get().asEmojiData()), user.getId()).block();
+                    } catch (Exception e) {
+                        //Ignore, probably not that important
                     }
                 }
             }

@@ -58,10 +58,17 @@ public class StoryWeaverInstance {
     public Long getOwnerId() {
         return this.ownerId;
     }
+    public boolean isLobbyOpen() {
+        return this.lobbyOpen;
+    }
+
+    public int getNumberOfParticipants() {
+        return this.participants.size();
+    }
 
     public void addParticipant(Long userId){
         synchronized(locker) {
-            if (this.lobbyOpen) {
+            if (this.lobbyOpen && !this.participants.contains(userId)) {
                 this.participants.add(userId);
                 updateLobbyMessage();
             }
@@ -70,7 +77,7 @@ public class StoryWeaverInstance {
 
     public void removeParticipant(Long userId){
         synchronized(locker) {
-            if (this.lobbyOpen) {
+            if (this.lobbyOpen && this.participants.contains(userId)) {
                 this.participants.remove(userId);
                 updateLobbyMessage();
             }
