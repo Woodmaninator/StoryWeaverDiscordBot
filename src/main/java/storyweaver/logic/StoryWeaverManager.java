@@ -4,6 +4,7 @@ import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.Channel;
 import discord4j.core.object.reaction.ReactionEmoji;
+import reactor.core.publisher.Flux;
 
 import java.util.Optional;
 
@@ -59,40 +60,59 @@ public class StoryWeaverManager {
 
     public void interpretReaction(Message message, User user, ReactionEmoji emoji) {
         if(currentInstance != null && message.equals(currentInstance.getLobbyMessage())) {
-            //Check if the emoji has been removed or added
-            if(currentInstance.getLobbyMessage().getReactors(emoji).any(user1 -> user1.equals(user)).block()) {
+            //Check if the emoji has been added. if it was removed -> do nothing
 
-                Optional<ReactionEmoji.Unicode> unicodeEmoji = emoji.asUnicodeEmoji();
-                if(unicodeEmoji.isPresent()) {
-                    String rawEmoji = unicodeEmoji.get().getRaw();
-                    Long userId = user.getId().asLong();
-                    if (rawEmoji.equals("\uD83D\uDFE9")) {
-                        if (!userId.equals(currentInstance.getOwnerId())) {
-                            this.currentInstance.addParticipant(userId);
+            //Cancel if the lobby message does not exist anymore for some reason (this should never happen but whatever)
+            if(currentInstance.getLobbyMessage() == null)
+                return;
+
+            //Check if the reaction still exists for that message, if not, return
+            if(!currentInstance.getLobbyMessage().getReactions().stream().anyMatch(reaction -> reaction.getEmoji().equals(emoji)))
+                return;
+
+            try {
+
+                //Get the reactors of that emoji
+                Flux<User> reactors = currentInstance.getLobbyMessage().getReactors(emoji);
+
+                //Check if the user is in the list of reactors
+                if (Boolean.TRUE.equals(reactors.any(u -> u.getId().asLong() == user.getId().asLong()).block())) {
+
+                    Optional<ReactionEmoji.Unicode> unicodeEmoji = emoji.asUnicodeEmoji();
+                    if (unicodeEmoji.isPresent()) {
+                        String rawEmoji = unicodeEmoji.get().getRaw();
+                        Long userId = user.getId().asLong();
+                        if (rawEmoji.equals("\uD83D\uDFE9")) {
+                            if (!userId.equals(currentInstance.getOwnerId())) {
+                                this.currentInstance.addParticipant(userId);
+                            }
+
+                        } else if (rawEmoji.equals("\uD83D\uDFE5")) {
+                            if (!userId.equals(currentInstance.getOwnerId())) {
+                                this.currentInstance.removeParticipant(userId);
+                            }
+                        } else if (rawEmoji.equals("\u25B6\uFE0F")) {
+                            if (userId.equals(currentInstance.getOwnerId()) && currentInstance.getNumberOfParticipants() > 1 && currentInstance.isLobbyOpen()) {
+                                this.currentInstance.startGame();
+                            }
+                        } else if (rawEmoji.equals("\u274C")) {
+                            if (userId.equals(currentInstance.getOwnerId())) {
+                                //close the lobby
+                                this.currentInstance = null;
+                            }
                         }
 
-                    } else if (rawEmoji.equals("\uD83D\uDFE5")) {
-                        if (!userId.equals(currentInstance.getOwnerId())) {
-                            this.currentInstance.removeParticipant(userId);
+                        //Remove the reaction again
+                        try {
+                            message.removeReaction(ReactionEmoji.of(unicodeEmoji.get().asEmojiData()), user.getId()).block();
+                        } catch (Throwable e) {
+                            //Ignore, probably not that important, just means that the bot can't remove the reaction, but who cares
                         }
-                    } else if (rawEmoji.equals("\u25B6\uFE0F")) {
-                        if (userId.equals(currentInstance.getOwnerId()) && currentInstance.getNumberOfParticipants() > 1 && currentInstance.isLobbyOpen()) {
-                            this.currentInstance.startGame();
-                        }
-                    } else if (rawEmoji.equals("\u274C")) {
-                        if (userId.equals(currentInstance.getOwnerId())) {
-                            //close the lobby
-                            this.currentInstance = null;
-                        }
-                    }
-
-                    //Remove the reaction again
-                    try {
-                        message.removeReaction(ReactionEmoji.of(unicodeEmoji.get().asEmojiData()), user.getId()).block();
-                    } catch (Exception e) {
-                        //Ignore, probably not that important
                     }
                 }
+            } catch (Throwable e) {
+                //Ignore, probably not that important, just means that the reaction wasn't handled properly, but at
+                //least the lobby will no longer break
             }
         }
     }
