@@ -200,8 +200,8 @@ public class StoryWeaverInstance {
                         if (stories.get(nextUserId).size() < maxRounds) {
                             userChannels.get(nextUserId).createMessage(
                                     "You have a new story to continue. Please send the next part of the story\n\n" +
-                                    "You are writing part " + (stories.get(userId).size() + 1) + "/" + maxRounds + " of the story\n\n" +
-                                    stories.get(userId).get(stories.get(userId).size() - 1)).block();
+                                    "You are writing part " + (stories.get(userId).size() + 1) + "/" + maxRounds + " of the story").block();
+                            userChannels.get(nextUserId).createMessage(stories.get(userId).get(stories.get(userId).size() - 1)).block();
 
                             userCanWrite.put(nextUserId, true);
 
@@ -215,8 +215,8 @@ public class StoryWeaverInstance {
                         if (stories.get(userId).size() < maxRounds) {
                             userChannels.get(userId).createMessage(
                                     "You have a new story to continue. Please send the next part of the story\n\n" +
-                                    "You are writing part " + (stories.get(userId).size() + 1) + "/" + maxRounds + " of the story\n\n" +
-                                    stories.get(previousUserId).get(stories.get(userId).size() - 1)).block();
+                                    "You are writing part " + (stories.get(userId).size() + 1) + "/" + maxRounds + " of the story").block();
+                            userChannels.get(userId).createMessage(stories.get(previousUserId).get(stories.get(userId).size() - 1)).block();
 
                             userCanWrite.put(userId, true);
 
