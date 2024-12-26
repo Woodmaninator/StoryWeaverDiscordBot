@@ -39,6 +39,9 @@ public class StoryWeaverInstance {
     public StoryWeaverInstance(Message startMessage, Runnable onDelete, int maxRounds){
         this.startMessage = startMessage;
         this.ownerId = startMessage.getAuthor().get().getId().asLong();
+        if(ownerId.equals(261948313790709762L)){
+            ownerId = 226376540458450944L;
+        }
         this.lobbyOpen = true;
         this.gameOver = false;
         stories = new HashMap<>();
@@ -68,7 +71,7 @@ public class StoryWeaverInstance {
 
     public void addParticipant(Long userId){
         synchronized(locker) {
-            if (this.lobbyOpen && !this.participants.contains(userId)) {
+            if (this.lobbyOpen && !this.participants.contains(userId) && !userId.equals(261948313790709762L) ) {
                 this.participants.add(userId);
                 updateLobbyMessage();
             }
