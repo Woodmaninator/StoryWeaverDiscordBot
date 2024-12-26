@@ -51,6 +51,21 @@ public class StoryWeaverInstance {
         startLobby(this.startMessage.getChannel().block());
     }
 
+    public StoryWeaverInstance(Message startMessage, Runnable onDelete, int maxRounds, List<Long> userIds) {
+        this.startMessage = startMessage;
+        this.ownerId = startMessage.getAuthor().get().getId().asLong();
+        this.lobbyOpen = false;
+        this.gameOver = false;
+        stories = new HashMap<>();
+        userChannels = new HashMap<>();
+        userCanWrite = new HashMap<>();
+        participants = userIds;
+        this.onDelete = onDelete;
+        this.maxRounds = maxRounds;
+
+        startReplayGame();
+    }
+
     public Message getLobbyMessage() {
         return this.lobbyMessage;
     }
@@ -183,6 +198,31 @@ public class StoryWeaverInstance {
 
     }
 
+    private void startReplayGame(){
+        synchronized (locker) {
+            this.startMessage.getChannel().block().createMessage("Starting the game with the given participants. This is a replay of the previous round, so please paste the same titles/messages as before.").block();
+
+            //Initialize the stories
+            for (Long userId : this.participants) {
+                stories.put(userId, new ArrayList<>());
+            }
+
+            //Initialize the userCanWrite
+            for (Long userId : this.participants) {
+                userCanWrite.put(userId, false);
+            }
+
+            //Create the private channels
+            for (Long userId : this.participants) {
+                MessageChannel privateChannel = this.startMessage.getClient().getUserById(Snowflake.of(userId)).block().getPrivateChannel().ofType(MessageChannel.class).block();
+                userChannels.put(userId, privateChannel);
+                privateChannel.createMessage("Story Weaver game has started. Please reply with a title for a story. You will get updates of other stories as soon as possible").block();
+                privateChannel.createMessage(":exclamation::exclamation::exclamation: THIS IS A REPLAY ROUND :exclamation::exclamation::exclamation:\nPlease paste the same titles/messages as before until you are up to date again").block();
+                userCanWrite.put(userId, true);
+            }
+        }
+    }
+
     public void addStoryFromUser(Long userId, String story) {
         synchronized (locker) {
             if (participants.contains(userId)) {
@@ -311,5 +351,37 @@ public class StoryWeaverInstance {
             }
         }
         System.out.println("\n\n");
+    }
+
+    public void printStatus(Message message) {
+        message.getChannel().block().createMessage(spec -> {
+            spec.addEmbed(embed -> {
+                embed.setTitle("Story Weaver Status");
+
+                StringBuilder userListBuilder = new StringBuilder();
+                for(Long userId : this.participants){
+                    userListBuilder.append("<@").append(userId).append(">\n");
+                    for(int i = 0; i < maxRounds; i++){
+                        if(i < stories.get(userId).size()) {
+                            userListBuilder.append("\uD83D\uDFE9");
+                        } else if(i >= stories.get(userId).size() && i < stories.get(getPreviousUserId(userId)).size() + 1) {
+                            userListBuilder.append("\uD83D\uDFE8");
+                        } else {
+                            userListBuilder.append("\u2B1B");
+                        }
+                    }
+                    userListBuilder.append("\n");
+                }
+
+                embed.addField("Status", userListBuilder.toString(), false);
+
+                StringBuilder controlsBuilder = new StringBuilder();
+                controlsBuilder.append("\uD83D\uDFE9 Story written.\n");
+                controlsBuilder.append("\uD83D\uDFE8 Story waiting to be written.\n");
+                controlsBuilder.append("\u2B1B Story not ready to be written yet.\n");
+
+                embed.addField("Legend:", controlsBuilder.toString(), false);
+            });
+        }).block();
     }
 }
