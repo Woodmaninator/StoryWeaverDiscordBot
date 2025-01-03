@@ -363,11 +363,11 @@ public class StoryWeaverInstance {
                     userListBuilder.append("<@").append(userId).append(">\n");
                     for(int i = 0; i < maxRounds; i++){
                         if(i < stories.get(userId).size()) {
-                            userListBuilder.append("\uD83D\uDFE9");
+                            userListBuilder.append("\u2705");
                         } else if(i >= stories.get(userId).size() && i < stories.get(getPreviousUserId(userId)).size() + 1) {
                             userListBuilder.append("\uD83D\uDFE8");
                         } else {
-                            userListBuilder.append("\u2B1B");
+                            userListBuilder.append("\u2B1C");
                         }
                     }
                     userListBuilder.append("\n");
@@ -376,9 +376,9 @@ public class StoryWeaverInstance {
                 embed.addField("Status", userListBuilder.toString(), false);
 
                 StringBuilder controlsBuilder = new StringBuilder();
-                controlsBuilder.append("\uD83D\uDFE9 Story written.\n");
+                controlsBuilder.append("\u2705 Story written.\n");
                 controlsBuilder.append("\uD83D\uDFE8 Story waiting to be written.\n");
-                controlsBuilder.append("\u2B1B Story not ready to be written yet.\n");
+                controlsBuilder.append("\u2B1C Story not ready to be written yet.\n");
 
                 embed.addField("Legend:", controlsBuilder.toString(), false);
             });
