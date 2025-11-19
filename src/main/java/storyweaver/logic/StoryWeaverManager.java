@@ -13,6 +13,10 @@ public class StoryWeaverManager {
 
     private StoryWeaverInstance currentInstance = null;
     public void interpretMessage(Message message) {
+        // Fucking wordle man...
+        if(!message.getAuthor().isPresent())
+            return;
+
         if(message.getAuthor().get().isBot())
             return;
         if(message.getChannel().block().getType().equals(Channel.Type.DM))

@@ -1,13 +1,13 @@
 package storyweaver.logic;
 
 import discord4j.common.util.Snowflake;
-import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 public class StoryWeaverInstance {
@@ -31,6 +31,9 @@ public class StoryWeaverInstance {
     private Map<Long, MessageChannel> userChannels;
 
     private Map<Long, Boolean> userCanWrite;
+
+    private Map<Long, List<LocalDateTime>> storyPartStartTimes;
+    private Map<Long, List<LocalDateTime>> storyPartEndTimes;
 
     private final int maxRounds;
 
@@ -194,8 +197,9 @@ public class StoryWeaverInstance {
                 privateChannel.createMessage("Story Weaver game has started. Please reply with a title for a story. You will get updates of other stories as soon as possible").block();
                 userCanWrite.put(userId, true);
             }
-        }
 
+            initializeTimeTrackingForUsers();
+        }
     }
 
     private void startReplayGame(){
@@ -220,6 +224,21 @@ public class StoryWeaverInstance {
                 privateChannel.createMessage(":exclamation::exclamation::exclamation: THIS IS A REPLAY ROUND :exclamation::exclamation::exclamation:\nPlease paste the same titles/messages as before until you are up to date again").block();
                 userCanWrite.put(userId, true);
             }
+
+            initializeTimeTrackingForUsers();
+        }
+    }
+
+    private void initializeTimeTrackingForUsers() {
+        LocalDateTime now = LocalDateTime.now();
+
+        // Initialize the start write times for each user
+        storyPartStartTimes = new HashMap<>();
+        storyPartEndTimes = new HashMap<>();
+        for (Long userId : this.participants) {
+            storyPartStartTimes.put(userId, new ArrayList<>());
+            storyPartStartTimes.get(userId).add(now); // First part start time is now since they can write the title immediately
+            storyPartEndTimes.put(userId, new ArrayList<>());
         }
     }
 
@@ -231,6 +250,9 @@ public class StoryWeaverInstance {
                 if (userCanWrite.get(userId)) {
                     stories.get(userId).add(story);
                     userCanWrite.put(userId, false);
+
+                    //Record the end time for this part
+                    storyPartEndTimes.get(userId).add(LocalDateTime.now());
 
                     System.out.println("User " + userId + " wrote: " + story);
 
@@ -246,6 +268,8 @@ public class StoryWeaverInstance {
                             userCanWrite.put(nextUserId, true);
 
                             System.out.println("The next user got the currently submitted story immediately");
+
+                            storyPartStartTimes.get(nextUserId).add(LocalDateTime.now());
                         }
                     }
 
@@ -261,6 +285,8 @@ public class StoryWeaverInstance {
                             userCanWrite.put(userId, true);
 
                             System.out.println("The current user got the story from the previous user immediately");
+
+                            storyPartStartTimes.get(userId).add(LocalDateTime.now());
                         }
                     }
 
@@ -339,7 +365,53 @@ public class StoryWeaverInstance {
 
         this.updateLobbyMessage();
 
+        sendTimeStatisticMessage();
+
         this.onDelete.run();
+    }
+
+    private void sendTimeStatisticMessage() {
+        HashMap<Long, Long> averageTimes = new HashMap<>();
+        for(Long userId : participants) {
+            List<LocalDateTime> startTimes = storyPartStartTimes.get(userId);
+            List<LocalDateTime> endTimes = storyPartEndTimes.get(userId);
+
+            long totalSeconds = 0;
+            for(int i = 0; i < startTimes.size(); i++) {
+                totalSeconds += java.time.Duration.between(startTimes.get(i), endTimes.get(i)).getSeconds();
+            }
+
+            long averageSeconds = totalSeconds / startTimes.size();
+            averageTimes.put(userId, averageSeconds);
+        }
+
+        GatewayDiscordClient gatewayDiscordClient = this.startMessage.getClient();
+
+        List<Pair<Long, Long>> sortedAverages = new ArrayList<>();
+        for(Map.Entry<Long, Long> entry : averageTimes.entrySet()) {
+            sortedAverages.add(new Pair<>(entry.getKey(), entry.getValue()));
+        }
+        sortedAverages.sort(Comparator.comparingLong(Pair::getValue));
+
+        StringBuilder statsMessageBuilder = new StringBuilder();
+        for(Pair<Long, Long> pair : sortedAverages) {
+            User user = gatewayDiscordClient.getUserById(Snowflake.of(pair.getKey())).block();
+            Long hours = pair.getValue() / 3600;
+            Long minutes = (pair.getValue() % 3600) / 60;
+
+            statsMessageBuilder.append(user.getGlobalName().get())
+                    .append(": ")
+                    .append(String.format("%02d:%02d", hours, minutes))
+                    .append("\n");
+        }
+
+        startMessage.getChannel().block().createMessage(spec -> {
+            spec.addEmbed(embed -> {
+                embed.setTitle("Hall of Shame");
+
+                embed.addField("Average time to write 1 story", statsMessageBuilder.toString(), false);
+            });
+        }).block();
     }
 
     private void debugPrintStoriesSoFar() {

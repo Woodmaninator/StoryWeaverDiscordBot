@@ -25,11 +25,30 @@ public class StoryWeaverMain {
 
         // event listeners for created messages (both public and private)
         gateway.on(MessageCreateEvent.class).subscribe(event -> {
-            manager.interpretMessage(event.getMessage());
+            try {
+                manager.interpretMessage(event.getMessage());
+            } catch (Exception e) {
+                try {
+                    event.getMessage().getChannel().block().createMessage("An error occurred while processing your message.\n" + e.getMessage()).block();
+                    e.printStackTrace();
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
         });
 
         // event listeners for reactions added to messages
         gateway.on(ReactionAddEvent.class).subscribe(event -> {
+            try{
+                manager.interpretReaction(event.getMessage().block(), event.getUser().block(), event.getEmoji());
+            } catch (Exception e) {
+                try {
+                    event.getMessage().block().getChannel().block().createMessage("An error occurred while processing your reaction.\n" + e.getMessage()).block();
+                    e.printStackTrace();
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
             manager.interpretReaction(event.getMessage().block(), event.getUser().block(), event.getEmoji());
         });
 
